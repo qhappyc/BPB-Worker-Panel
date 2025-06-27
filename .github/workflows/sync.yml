@@ -1,29 +1,44 @@
 # 文件名: .github/workflows/sync.yml
-name: Sync with Upstream
+name: Sync Fork with Merge Strategy
 
 on:
   schedule:
-    # 每小时的第30分钟执行一次
-    - cron: '30 * * * *'
+    # 每小时执行一次
+    - cron: '0 * * * *'
   workflow_dispatch:
-    # 这行允许你手动触发这个工作流
+    # 允许手动触发
 
 jobs:
   sync:
     runs-on: ubuntu-latest
     steps:
-      - name: Sync Fork
-        # 这是专门用于同步的、最主流的 Action
-        uses: repo-sync/fork-sync@v2
+      # 步骤 1: 使用 PAT checkout 你的仓库，以便拥有推送权限
+      - name: Checkout Fork
+        uses: actions/checkout@v4
         with:
-          # [必需] 源头仓库地址
-          source_repo: 'bia-pain-bache/BPB-Worker-Panel'
-          # [必需] 源仓库的分支
-          source_branch: 'main'
-          # [必需] 你的 Fork 仓库中要被更新的目标分支
-          target_branch: 'main'
-          # [必需] 你的 Personal Access Token (PAT)
-          # 你之前创建的 secrets.SYNC_TOKEN 在这里仍然有效
-          github_token: ${{ secrets.SYNC_TOKEN }}
-          # 使用 force push，确保你的 fork 和上游完全一致
-          force: true
+          token: ${{ secrets.SYNC_TOKEN }}
+          # 拉取所有 git 历史，以便合并
+          fetch-depth: 0
+
+      # 步骤 2: 添加源仓库 (upstream)
+      - name: Set up upstream remote
+        run: git remote add upstream https://github.com/bia-pain-bache/BPB-Worker-Panel.git
+
+      # 步骤 3: 从源仓库拉取最新代码
+      - name: Fetch from upstream
+        run: git fetch upstream
+
+      # 步骤 4: 合并更新 (最关键的区别)
+      - name: Merge upstream changes
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          git checkout main
+          # 将 upstream/main 合并到你的 main
+          # 这会保留你的 workflow 文件，同时拉取所有更新
+          git merge upstream/main
+
+      # 步骤 5: 将更新推送到你的 Fork 仓库
+      - name: Push changes to fork
+        # 这里不需要 --force
+        run: git push origin main
