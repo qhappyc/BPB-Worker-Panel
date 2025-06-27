@@ -1,0 +1,29 @@
+# 文件名: .github/workflows/sync.yml
+name: Sync with Upstream
+
+on:
+  schedule:
+    # 每小时的第30分钟执行一次
+    - cron: '30 * * * *'
+  workflow_dispatch:
+    # 这行允许你手动触发这个工作流
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Sync Fork
+        # 这是专门用于同步的、最主流的 Action
+        uses: repo-sync/fork-sync@v2
+        with:
+          # [必需] 源头仓库地址
+          source_repo: 'bia-pain-bache/BPB-Worker-Panel'
+          # [必需] 源仓库的分支
+          source_branch: 'main'
+          # [必需] 你的 Fork 仓库中要被更新的目标分支
+          target_branch: 'main'
+          # [必需] 你的 Personal Access Token (PAT)
+          # 你之前创建的 secrets.SYNC_TOKEN 在这里仍然有效
+          github_token: ${{ secrets.SYNC_TOKEN }}
+          # 使用 force push，确保你的 fork 和上游完全一致
+          force: true
